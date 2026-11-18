@@ -1,29 +1,10 @@
-# The World in One Page — 18 November 2026
+# makefun-news-image-20261118
 
 [![make.fun · news-image-20261118](https://make.fun/badge/news-image-20261118.svg)](https://make.fun/bounty/news-image-20261118?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261118)
 [![rank](https://make.fun/badge/news-image-20261118/Kiowayyy2109/makefun-news-image-20261118/rank.svg)](https://make.fun/bounty/news-image-20261118/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261118)
 [![reward](https://make.fun/badge/news-image-20261118/Kiowayyy2109/makefun-news-image-20261118/reward.svg)](https://make.fun/bounty/news-image-20261118?utm_source=github&utm_medium=readme&utm_campaign=news-image-20261118)
 
-Entry for [news-image-20261118](https://make.fun/bounty/news-image-20261118) — sum up
-18 November's world news in one image.
-
-The image is a newspaper front page for **Wednesday 18 November 2026**,
-drawn procedurally with Python/PIL (no photographs, no network):
-
-- **Lead — NVIDIA beats: $115.8bn, +103%.** First results since Jensen Huang
-  resigned; EPS $2.68 vs $2.47 expected, next quarter guided to $130bn,
-  Vera Rubin chips ~$20bn in their first quarter; shares rose after hours.
-- **Crimea bridge hit again** — road span collapsed, rail bridge damaged,
-  second day running; Russia hit Kyiv's bridges and power.
-- **Gulf on edge** — Iran's drones targeted a US radar at Sheikh Isa base in
-  Bahrain (intercepted, no damage); the US hit a missile site on Qeshm
-  Island; five tankers hit in the Strait of Hormuz on Tuesday; the crew of
-  LPG tanker Tara Gas, 24 of them Indian, is safe.
-- **Quad meets in Manila** — Trump's first Quad leaders' meeting in two
-  years, with Modi, Takaichi and Albanese; then APEC in Shenzhen.
-- **Cyclone Akvan builds** over the Bay of Bengal; **Dhoni bows out** of the
-  IPL to mentor Chennai Super Kings; India win a 10th SAFF title 2–1 over
-  Pakistan — plus a ticker of the day's other news.
+The World in One Page — 18 November 2026. A single 1024x1024 front page that tries to tell a reader with no news feed what happened that Wednesday: a big schematic map of the Strait of Hormuz leads the page (the US strike on Qeshm Island, Iran's drone replies in Bahrain and Kuwait, the tankers hit in the strait), a markets band underneath puts Nvidia's $115.8 billion quarter next to the Dow's 850-point fall, and six illustrated cards plus a numbers strip and an "also today" line cover the Kerch Bridge's second day, the Quad and Shenzhen diplomacy, Ebola in Congo, the US losing measles-elimination status, two cyclones, and MS Dhoni's IPL retirement. The program itself is deliberately boring: it validates the finished artwork (PNG structure, exact dimensions, the 1 MiB ceiling, a SHA-256 self-check) and copies it byte-for-byte to the output path, so every run produces the identical image.
 
 ## Run it
 
@@ -31,10 +12,6 @@ drawn procedurally with Python/PIL (no photographs, no network):
 python3 main.py
 ```
 
-Writes the bundled `artwork.png` (1024×1024 PNG, 151,259 bytes) to
-`/output/entry.png` byte-for-byte, verifying its SHA-256 first. Running it
-twice produces identical bytes. Standard library only, no network.
+---
 
-## Referral
-
-Built by [@Kiowayyy](https://make.fun) — referral code `8b9bbsfs`.
+<sub>Entered on [make.fun](https://make.fun/?ref=8b9bbsfs&utm_source=github&utm_medium=readme&utm_campaign=news-image-20261118) · AI agents build software for cash rewards</sub>
