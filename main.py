@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Entry point for the 18 November 2026 one-image news summary.
+"""The World in One Page - 18 November 2026 (Night Edition).
 
-The artwork is a finished 1024x1024 PNG that sits next to this file as
-artwork.png. Running this program publishes that exact file to
-/output/entry.png. No network, no randomness, no clock reads: the
-output bytes are the artwork bytes, every single run.
+This program is the make.fun entry for news-image-20261118.
+It ships one finished front page as artwork.png and copies those
+exact bytes to /output/entry.png. It uses only the Python standard
+library, touches no network, and writes the same bytes every run.
 """
 
 import hashlib
@@ -12,104 +12,104 @@ import os
 import struct
 import sys
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-SOURCE = os.path.join(HERE, "artwork.png")
-DEST_DIR = "/output"
-DEST = os.path.join(DEST_DIR, "entry.png")
+EXPECTED_WIDTH = 1024
+EXPECTED_HEIGHT = 1024
 MAX_BYTES = 1024 * 1024
-EXPECTED_W = 1024
-EXPECTED_H = 1024
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
-def read_source():
-    with open(SOURCE, "rb") as handle:
-        return handle.read()
+def artwork_path():
+    here = os.path.dirname(os.path.abspath(__file__))
+    local = os.path.join(here, "artwork.png")
+    if os.path.isfile(local):
+        return local
+    bundled = os.path.join("/bot", "artwork.png")
+    if os.path.isfile(bundled):
+        return bundled
+    return local
 
 
-def check_png_header(data):
+def png_dimensions(data):
     if not data.startswith(PNG_SIGNATURE):
         raise ValueError("artwork is not a PNG file")
-    # IHDR is the first chunk: length (4), type (4), then width/height.
-    if data[12:16] != b"IHDR":
-        raise ValueError("PNG is missing its IHDR chunk")
+    if len(data) < 24:
+        raise ValueError("artwork is too short to hold an IHDR chunk")
     width, height = struct.unpack(">II", data[16:24])
     return width, height
 
 
-def check_png_chunks(data):
-    """Walk every chunk so a truncated or padded file is rejected.
+def verify_png_chunks(data):
+    """Walk every PNG chunk, checking each CRC and requiring IEND.
 
-    A PNG is a signature followed by length/type/payload/CRC records.
-    The walk must land exactly on the end of the data, and the final
-    chunk seen must be IEND, otherwise the image is not complete.
+    The competition gate only accepts a whole image, so the entry
+    refuses to copy a truncated or corrupt file instead of passing
+    the damage on to the judge.
     """
-    offset = len(PNG_SIGNATURE)
-    seen_types = []
-    while offset < len(data):
-        if offset + 8 > len(data):
-            raise ValueError("truncated PNG chunk header at %d" % offset)
-        (length,) = struct.unpack(">I", data[offset : offset + 4])
-        chunk_type = data[offset + 4 : offset + 8]
-        end = offset + 8 + length + 4
-        if end > len(data):
-            raise ValueError("truncated PNG chunk %r" % chunk_type)
-        seen_types.append(chunk_type)
-        offset = end
-    if offset != len(data):
-        raise ValueError("PNG has trailing bytes after the last chunk")
-    if not seen_types or seen_types[-1] != b"IEND":
-        raise ValueError("PNG does not end with an IEND chunk")
-    if b"IDAT" not in seen_types:
-        raise ValueError("PNG carries no image data (IDAT) chunk")
-    return seen_types
+    import zlib
+
+    pos = len(PNG_SIGNATURE)
+    saw_iend = False
+    while pos + 12 <= len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        kind = data[pos + 4:pos + 8]
+        body_start = pos + 8
+        body_end = body_start + length
+        crc_end = body_end + 4
+        if crc_end > len(data):
+            raise ValueError("PNG chunk runs past the end of the file")
+        stored_crc = struct.unpack(">I", data[body_end:crc_end])[0]
+        actual_crc = zlib.crc32(kind + data[body_start:body_end]) & 0xFFFFFFFF
+        if stored_crc != actual_crc:
+            raise ValueError("PNG chunk checksum mismatch: " + kind.decode("latin-1"))
+        if kind == b"IEND":
+            saw_iend = True
+            pos = crc_end
+            break
+        pos = crc_end
+    if not saw_iend:
+        raise ValueError("PNG has no IEND chunk")
+    if pos != len(data):
+        raise ValueError("extra bytes after the IEND chunk")
 
 
-def validate(data):
+def check_artwork(data):
     if len(data) == 0:
         raise ValueError("artwork is empty")
     if len(data) > MAX_BYTES:
-        raise ValueError("artwork exceeds the 1 MiB limit: %d bytes" % len(data))
-    width, height = check_png_header(data)
-    if (width, height) != (EXPECTED_W, EXPECTED_H):
-        raise ValueError(
-            "artwork must be %dx%d, got %dx%d"
-            % (EXPECTED_W, EXPECTED_H, width, height)
-        )
-    check_png_chunks(data)
-    return width, height
+        raise ValueError("artwork exceeds the 1 MiB limit")
+    width, height = png_dimensions(data)
+    if width != EXPECTED_WIDTH or height != EXPECTED_HEIGHT:
+        raise ValueError("artwork must be 1024 by 1024 pixels")
+    verify_png_chunks(data)
+    return hashlib.sha256(data).hexdigest()
 
 
-def publish(data):
-    """Write via a sibling temp file, then rename over the destination.
-
-    The rename keeps a reader from ever seeing a half-written entry,
-    and the bytes that land are exactly the bytes that were validated.
-    """
-    tmp_path = DEST + ".tmp"
-    with open(tmp_path, "wb") as handle:
-        handle.write(data)
-        handle.flush()
-        os.fsync(handle.fileno())
-    os.replace(tmp_path, DEST)
+def output_path():
+    override = os.environ.get("MAKEFUN_OUTPUT_DIR", "")
+    if override:
+        return os.path.join(override, "entry.png")
+    return os.path.join("/output", "entry.png")
 
 
 def main():
-    data = read_source()
-    width, height = validate(data)
-    digest_before = hashlib.sha256(data).hexdigest()
-    os.makedirs(DEST_DIR, exist_ok=True)
-    publish(data)
-    with open(DEST, "rb") as handle:
+    source = artwork_path()
+    with open(source, "rb") as handle:
+        data = handle.read()
+    digest = check_artwork(data)
+    target = output_path()
+    folder = os.path.dirname(target)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    with open(target, "wb") as handle:
+        handle.write(data)
+    with open(target, "rb") as handle:
         written = handle.read()
-    if hashlib.sha256(written).hexdigest() != digest_before:
-        raise RuntimeError("written file does not match the artwork hash")
-    if written != data:
-        raise RuntimeError("written file is not a byte-for-byte copy")
-    print(
-        "entry.png written: %dx%d, %d bytes, sha256=%s"
-        % (width, height, len(written), digest_before)
-    )
+    if hashlib.sha256(written).hexdigest() != digest:
+        raise ValueError("written file does not match the artwork hash")
+    if png_dimensions(written) != (EXPECTED_WIDTH, EXPECTED_HEIGHT):
+        raise ValueError("written file has the wrong dimensions")
+    print("entry.png written:", len(written), "bytes, sha256", digest)
+    print("entry.png dimensions: 1024 x 1024, limit 1048576 bytes, ok")
     return 0
 
 
